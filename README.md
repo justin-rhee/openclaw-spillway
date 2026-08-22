@@ -71,7 +71,7 @@ It doesn't give you more quota. It spends the quota you have on the right things
 
 It doesn't show you the numbers it reads. Decisions go to the log and to `spillway.status`, not to your screen. If you want the windows visible while you work, [headroom](https://github.com/justin-rhee/headroom) puts Claude usage and OpenRouter spend in the macOS menu bar.
 
-It doesn't check that your backup lane actually works. Point a rule at a provider you never configured, and a spill routes turns onto a dead lane where they fail with an auth error, sooner than they would have failed on the primary. OpenClaw's normal fallback chain still catches the failure if you've set `agents.defaults.model.fallbacks`, but the simpler advice is to run one turn on your spill lane with `/model` before trusting it.
+It doesn't check that your backup lane actually works. Point a rule at a provider you never configured, and a spill routes turns onto a dead lane where they fail with an auth error, sooner than they would have failed on the primary. OpenClaw's normal fallback chain still catches the failure if you've set `agents.defaults.model.fallbacks`, but the simpler advice is to run one turn on your spill lane with `/model` before trusting it. A config-load check on the spill provider and a circuit breaker that stops spilling to a lane returning auth errors are both planned for v0.2, and even then the first turn onto a newly dead lane will still fail. See [docs/ADR.md](docs/ADR.md).
 
 It can't see session-level model pins. If you pin a model with `/model` for one session, a spill override may still apply to that turn. That's a known v0.1 limit; disable the plugin if it fights a pin you care about.
 
