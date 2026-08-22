@@ -1,0 +1,92 @@
+{
+  "id": "spillway",
+  "name": "Spillway",
+  "description": "Proactive quota-aware failover: spill work to a backup lane before a usage window runs out.",
+  "version": "0.1.0",
+  "activation": {
+    "onStartup": true
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "enabled": {
+        "type": "boolean",
+        "description": "Master switch. When false the plugin observes nothing and overrides nothing."
+      },
+      "pollSeconds": {
+        "type": "number",
+        "minimum": 60,
+        "maximum": 3600,
+        "description": "How often to read the gateway usage snapshot. Default 300."
+      },
+      "threshold": {
+        "type": "number",
+        "minimum": 1,
+        "maximum": 100,
+        "description": "Percent of a usage window at which interactive work spills to the backup lane. Default 80."
+      },
+      "margin": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 50,
+        "description": "Hysteresis margin. Once spilled, usage must drop below threshold minus margin before work returns. Default 10."
+      },
+      "backgroundThreshold": {
+        "type": "number",
+        "minimum": 1,
+        "maximum": 100,
+        "description": "Percent at which background work (cron and heartbeat turns) spills. Defaults to threshold minus 20, floored at 10."
+      },
+      "maxSnapshotAgeSeconds": {
+        "type": "number",
+        "minimum": 60,
+        "maximum": 86400,
+        "description": "Usage data older than this is treated as unknown and never drives a spill. Default 900."
+      },
+      "allowAnthropic": {
+        "type": "boolean",
+        "description": "Off by default. Anthropic restricts subscription OAuth to Claude Code and native Anthropic apps, so spillway refuses to route on Anthropic usage windows unless you explicitly opt in. Read the README before setting this."
+      },
+      "stubUsageFile": {
+        "type": "string",
+        "description": "Dev and testing only: read usage rows from this JSON file instead of the gateway's usage.status method. A warning is logged whenever this is set."
+      },
+      "rules": {
+        "type": "array",
+        "description": "One rule per watched lane. When the watched provider's worst usage window crosses the threshold, runs spill to the given provider and model.",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["watchProvider", "spillProvider", "spillModel"],
+          "properties": {
+            "watchProvider": {
+              "type": "string",
+              "description": "Provider id whose usage windows to watch, for example \"openai-codex\" or \"minimax\"."
+            },
+            "spillProvider": {
+              "type": "string",
+              "description": "Provider id to route to while spilled, for example \"openrouter\"."
+            },
+            "spillModel": {
+              "type": "string",
+              "description": "Model id to route to while spilled."
+            },
+            "threshold": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 100,
+              "description": "Per-rule override of the global threshold."
+            },
+            "backgroundThreshold": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 100,
+              "description": "Per-rule override of the global background threshold."
+            }
+          }
+        }
+      }
+    }
+  }
+}
