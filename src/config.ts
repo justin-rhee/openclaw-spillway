@@ -84,6 +84,43 @@ export function parseConfig(raw: unknown): SpillwayConfig {
   return config;
 }
 
+/**
+ * Provider ids the gateway has in its own configured provider catalog
+ * (config.models.providers, keyed by provider id).
+ *
+ * Deliberately not the usage snapshot: a metered backup lane has no quota
+ * window, so it never appears in usage.status while being perfectly well
+ * configured. Validating a spill lane against usage rows would fire on the
+ * normal setup.
+ *
+ * Returns undefined when the catalog cannot be read at all. Ignorance yields
+ * no verdict, the same way ignorance never yields a spill.
+ */
+export function configuredProviderIds(
+  gatewayConfig: unknown,
+): Set<string> | undefined {
+  if (!isRecord(gatewayConfig)) return undefined;
+  const models = gatewayConfig["models"];
+  if (!isRecord(models)) return undefined;
+  const providers = models["providers"];
+  if (!isRecord(providers)) return undefined;
+  const ids = new Set(Object.keys(providers).filter((id) => id.length > 0));
+  return ids.size > 0 ? ids : undefined;
+}
+
+/**
+ * Rules whose spillProvider is not a provider the gateway has: a typo, or a
+ * lane that was never set up. Each one is disabled on its own; every other
+ * rule keeps working. An unreadable registry disables nothing.
+ */
+export function unresolvableSpillRules(
+  config: SpillwayConfig,
+  configured: ReadonlySet<string> | undefined,
+): SpillRule[] {
+  if (!configured) return [];
+  return config.rules.filter((r) => !configured.has(r.spillProvider));
+}
+
 export function ruleForProvider(
   config: SpillwayConfig,
   provider: string | undefined,

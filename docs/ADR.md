@@ -45,13 +45,21 @@ The fail-safe rule above is already the answer, applied to the other side of the
 about the spill lane's health, so the plugin refuses to act on a number it cannot trust and
 then acts on a destination it has never checked. Same class of error, opposite end.
 
-What closes most of it is a pair, planned for v0.2. First, a config-load check that the
-spill provider resolves to something actually configured, which needs no network and catches
-the realistic failure of a typo or a provider nobody set up. Second, a circuit breaker: the
-gateway fires `after_provider_response` with an HTTP status, so a spilled turn coming back
-401 or 5xx is observable, and after a couple of those the rule disables itself and says so
-in `spillway.status`. Failing back to not overriding lands the operator exactly where they
-would be without the plugin, which is the floor this should never go below.
+What closes most of it is a pair. The first half shipped in 0.2.0: a config-load check that
+the spill provider resolves against the gateway's own configured providers, which needs no
+network and catches the realistic failure of a typo or a lane nobody set up. It validates
+against the provider registry rather than the usage snapshot, and that distinction is the
+whole design. A metered backup lane legitimately has no usage window, so a check reading the
+usage rows would have fired on the correct configuration, which is worse than not checking.
+
+It also refuses to throw. An unresolvable lane disables that one rule and leaves the others
+running, because a plugin that blocks gateway startup to protect you from a misconfiguration
+has broken the same fail-safe rule it exists to defend.
+
+The second half is not built. The gateway fires `after_provider_response` with an HTTP
+status, so a spilled turn coming back 401 or 5xx is observable, and after a couple of those
+a rule could drop itself. Failing back to not overriding lands the operator exactly where
+they would be without the plugin, which is the floor this should never go below.
 
 A startup probe of the spill lane is the obvious first idea and it is the weakest of the
 three, which is why it is third and optional. It cannot see a lane that dies after boot,

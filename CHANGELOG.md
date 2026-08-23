@@ -3,6 +3,18 @@
 All notable changes to openclaw-spillway. Versions follow semver; the git tag
 for each release matches the version in package.json.
 
+## 0.2.0
+
+- a rule whose `spillProvider` does not resolve against the gateway's configured
+  providers now disables itself at load, logs why, and is listed under
+  `disabledRules` in `spillway.status`; other rules are unaffected
+- the check never throws and never blocks plugin load, because a plugin that
+  refuses to start would violate the same fail-safe rule it exists to defend
+- validated against the provider registry rather than the usage snapshot: a
+  metered backup lane legitimately has no usage window, so checking there would
+  have fired on the normal configuration
+- 31 tests, up from 22
+
 ## 0.1.0
 
 Initial release.
