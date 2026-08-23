@@ -46,6 +46,7 @@ function run(args: {
   rule?: SpillRule;
   turnClass?: "interactive" | "background";
   spillActive?: boolean;
+  spillLaneMissing?: boolean;
 }) {
   return decide({
     config: args.cfg ?? config(),
@@ -55,6 +56,7 @@ function run(args: {
       (args.usedPercent !== undefined ? usage(args.usedPercent) : undefined),
     turnClass: args.turnClass ?? "interactive",
     spillActive: args.spillActive ?? false,
+    spillLaneMissing: args.spillLaneMissing ?? false,
     nowMs: NOW,
   });
 }
@@ -166,6 +168,28 @@ describe("fail-safe: ignorance never causes a reroute", () => {
   it("disabled means no spill regardless of everything else", () => {
     const d = run({ usedPercent: 99, cfg: config({ enabled: false }) });
     expect(d.spill).toBe(false);
+  });
+});
+
+describe("a spill lane the gateway does not have is disabled, not routed to", () => {
+  // Break-the-claim: a rule whose spillProvider is not in the gateway's
+  // provider catalog must leave the turn exactly as it would be with the
+  // plugin absent - no override - however hot the watched lane runs. Drop the
+  // guard in decide() and this describe block is the red.
+  it("never spills onto an unconfigured lane", () => {
+    const d = run({ usedPercent: 100, spillLaneMissing: true });
+    expect(d.spill).toBe(false);
+    expect(d.reason).toBe("spill-lane-not-configured");
+  });
+
+  it("drops a spill it was already holding when the lane turns out missing", () => {
+    const d = run({ usedPercent: 99, spillActive: true, spillLaneMissing: true });
+    expect(d.spill).toBe(false);
+  });
+
+  it("disables that rule only: a configured lane still spills", () => {
+    expect(run({ usedPercent: 85, spillLaneMissing: false }).spill).toBe(true);
+    expect(run({ usedPercent: 85 }).spill).toBe(true);
   });
 });
 

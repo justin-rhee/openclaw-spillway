@@ -16,9 +16,26 @@ import { dispatchGatewayMethod } from "openclaw/plugin-sdk/gateway-method-runtim
 
 import { readFile } from "node:fs/promises";
 
-import { decide, type Decision, type LaneUsage, type TurnClass } from "./engine.js";
-import { parseConfig, providerOfModelRef, ruleForProvider } from "./config.js";
+import {
+  decide,
+  type Decision,
+  type LaneUsage,
+  type SpillRule,
+  type TurnClass,
+} from "./engine.js";
+import {
+  configuredProviderIds,
+  parseConfig,
+  providerOfModelRef,
+  ruleForProvider,
+  unresolvableSpillRules,
+} from "./config.js";
 import { createGatewaySource, createStubSource } from "./usage.js";
+
+/** Stable identity for a rule, shared by the disable list and the hook. */
+function ruleKeyOf(rule: SpillRule): string {
+  return `${rule.watchProvider}->${rule.spillProvider}/${rule.spillModel}`;
+}
 
 type StatusEntry = {
   atMs: number;
@@ -44,6 +61,30 @@ export default definePluginEntry({
       log.warn(
         "spillway: no rules configured; add plugins.entries.spillway.config.rules",
       );
+    }
+
+    // A spillProvider the gateway does not have is a dead lane: routing a live
+    // turn onto it fails the turn. Catch it here, at load, against the
+    // gateway's provider registry (not usage.status, which a metered backup
+    // lane legitimately never appears in). Wrapped, because a check that
+    // crashed plugin load would break the exact fail-safe rule it defends: an
+    // unresolvable lane disables THAT rule, nothing else.
+    const disabledRuleKeys = new Set<string>();
+    const disabledRules: SpillRule[] = [];
+    try {
+      for (const rule of unresolvableSpillRules(
+        config,
+        configuredProviderIds(api.config),
+      )) {
+        disabledRules.push(rule);
+        disabledRuleKeys.add(ruleKeyOf(rule));
+        log.warn(
+          `spillway: rule ${rule.watchProvider} -> ${rule.spillProvider}/${rule.spillModel} is DISABLED: the gateway has no provider "${rule.spillProvider}" (typo, or that lane was never configured). Every other rule keeps working; see spillway.status.`,
+        );
+      }
+    } catch (err) {
+      // Unreadable registry is ignorance, and ignorance disables nothing.
+      log.debug?.(`spillway: spill lane check skipped: ${String(err)}`);
     }
 
     const usageByProvider = new Map<string, LaneUsage>();
@@ -127,7 +168,7 @@ export default definePluginEntry({
 
       const contextish = (ctx ?? {}) as { jobId?: unknown };
       const turnClass: TurnClass = contextish.jobId ? "background" : "interactive";
-      const ruleKey = `${rule.watchProvider}->${rule.spillProvider}/${rule.spillModel}`;
+      const ruleKey = ruleKeyOf(rule);
       const wasActive = spillActiveByRule.get(ruleKey) ?? false;
 
       const decision = decide({
@@ -136,6 +177,7 @@ export default definePluginEntry({
         usage: await freshUsageFor(provider),
         turnClass,
         spillActive: wasActive,
+        spillLaneMissing: disabledRuleKeys.has(ruleKey),
         nowMs: Date.now(),
       });
 
@@ -185,6 +227,10 @@ export default definePluginEntry({
           allowAnthropic: config.allowAnthropic,
           rules: config.rules,
         },
+        disabledRules: disabledRules.map((rule) => ({
+          rule,
+          reason: "spill-lane-not-configured",
+        })),
         usage: Object.fromEntries(usageByProvider),
         spillActive: Object.fromEntries(spillActiveByRule),
         recentDecisions: recentDecisions.slice(-10),

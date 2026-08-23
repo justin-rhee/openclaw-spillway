@@ -105,6 +105,9 @@ export function decide(args: {
   turnClass: TurnClass;
   /** Whether the previous decision for this rule was a spill (hysteresis memory). */
   spillActive: boolean;
+  /** Whether this rule's spillProvider is absent from the gateway's configured
+   * providers. A dead lane disables the rule; it never routes a live turn. */
+  spillLaneMissing?: boolean;
   nowMs: number;
 }): Decision {
   const { config, rule, usage, turnClass, spillActive, nowMs } = args;
@@ -114,6 +117,12 @@ export function decide(args: {
   }
   if (!rule) {
     return { spill: false, reason: "no-rule-for-provider" };
+  }
+  if (args.spillLaneMissing) {
+    // Checked once at load against the gateway's provider registry. Ahead of
+    // the hysteresis branch on purpose: a spill already in flight must drop
+    // the moment its lane is known to be dead, not ride the margin down.
+    return { spill: false, rule, reason: "spill-lane-not-configured" };
   }
   if (isAnthropicProvider(rule.watchProvider) && !config.allowAnthropic) {
     return {
