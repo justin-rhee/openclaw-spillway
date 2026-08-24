@@ -1,6 +1,6 @@
 {
   "name": "openclaw-spillway",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Proactive quota-aware failover for OpenClaw: spill work to a backup lane before a usage window runs out.",
   "type": "module",
   "license": "MIT",
@@ -32,11 +32,22 @@
   },
   "scripts": {
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json",
+    "prepublishOnly": "npm run build"
   },
   "devDependencies": {
     "openclaw": "2026.6.11",
     "typescript": "^5.6.0",
     "vitest": "^3.0.0"
-  }
+  },
+  "files": [
+    "dist",
+    "src",
+    "openclaw.plugin.json",
+    "README.md",
+    "LICENSE",
+    "SECURITY.md",
+    "CHANGELOG.md"
+  ]
 }

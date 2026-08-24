@@ -3,6 +3,15 @@
 All notable changes to openclaw-spillway. Versions follow semver; the git tag
 for each release matches the version in package.json.
 
+## 0.2.2
+
+- ships compiled output in dist/. ClawHub refuses a TypeScript entry with no compiled
+  runtime, which openclaw's own git install never needed because it transpiles .ts
+  itself. Neither the plugin inspector nor the publish dry-run caught this; only the
+  publish did.
+- CI rebuilds and refuses any difference against the committed dist/, because a
+  committed build artifact drifts from its source silently.
+
 ## 0.2.1
 
 - openclaw.plugin.json carried version 0.1.0 while package.json and the release tag

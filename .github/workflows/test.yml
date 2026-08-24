@@ -16,6 +16,20 @@ jobs:
         with:
           node-version: 22
 
+      - name: Committed build output matches a fresh build
+        shell: bash
+        run: |
+          # dist/ is committed because ClawHub publishes from the repo and refuses a
+          # TypeScript entry with no compiled output. Committed build artifacts drift
+          # from their source silently, so this rebuilds and refuses any difference.
+          if [ -f tsconfig.build.json ]; then
+            npm run build
+            git diff --exit-code -- dist || {
+              echo "dist/ differs from a fresh build. Run npm run build and commit the result." >&2
+              exit 1
+            }
+          fi
+
       - name: Show interpreter versions (a platform claim must match what ran)
         run: |
           node --version
