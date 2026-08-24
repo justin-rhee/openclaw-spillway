@@ -33,7 +33,7 @@ Background work spills earlier than you do. Turns that arrive from cron jobs use
 openclaw plugins install git:github.com/justin-rhee/openclaw-spillway
 ```
 
-Then give it a rule and the hook permission it needs (`before_model_resolve` is a raw conversation hook, so installed plugins must opt in):
+It needs a rule and the hook permission that goes with it, since `before_model_resolve` is a raw conversation hook and installed plugins have to opt in:
 
 ```json5
 {
@@ -57,7 +57,7 @@ Then give it a rule and the hook permission it needs (`before_model_resolve` is 
 }
 ```
 
-Restart the gateway. You'll see a startup log line from spillway, and you can ask it what it sees at any time through the `spillway.status` gateway method: effective config, the latest usage rows, and the last ten routing decisions with their reasons.
+After a gateway restart spillway logs a line at startup, and it will say what it sees at any time through the `spillway.status` gateway method, which returns the effective config, the latest usage rows, and the last ten routing decisions with their reasons.
 
 Thresholds are configurable per rule or globally: `threshold` (default 80), `margin` (default 10), `backgroundThreshold` (default 20 under the threshold), `pollSeconds` (default 300), `maxSnapshotAgeSeconds` (default 900). The manifest schema documents every field and its range.
 
@@ -69,17 +69,17 @@ Spillway refuses to route on Anthropic usage windows by default. Those windows o
 
 It doesn't give you more quota. It spends the quota you have on the right things at the right time, and the backup lane is usually a metered lane you pay per token.
 
-It doesn't show you the numbers it reads. Decisions go to the log and to `spillway.status`, not to your screen. If you want the windows visible while you work, [headroom](https://github.com/justin-rhee/headroom) puts Claude usage and OpenRouter spend in the macOS menu bar.
+The numbers it reads stay out of sight, going to the log and to `spillway.status` rather than to your screen. If you want the windows visible while you work, [headroom](https://github.com/justin-rhee/headroom) puts Claude usage and OpenRouter spend in the macOS menu bar.
 
 It only half protects you from a backup lane that isn't there. At startup it checks that each rule's spill provider resolves to something the gateway actually has configured, so a typo or an unconfigured lane disables that rule on its own, says why in the log, and appears under `disabledRules` in `spillway.status`. Every other rule keeps working. What it cannot catch is a lane that was fine at boot and died later, a revoked key or an exhausted backup quota, and there the first spilled turn still lands on a dead lane. The circuit breaker that would close that gap, dropping a rule once its lane starts returning auth errors, is the half I haven't built. See [docs/ADR.md](docs/ADR.md).
 
-It can't see session-level model pins. If you pin a model with `/model` for one session, a spill override may still apply to that turn. That's a known v0.1 limit; disable the plugin if it fights a pin you care about.
+Session model pins are invisible to it, so pinning a model with `/model` for one session doesn't stop a spill override applying to that turn. I disable the plugin when it fights a pin I care about.
 
-Background detection is best effort. Cron-driven turns carry a job id and classify as background; everything else counts as interactive.
+Background detection is best effort, since cron-driven turns carry a job id and classify as background while everything else counts as interactive.
 
 Usage payload shapes vary by provider and by openclaw version. The normalizer is deliberately tolerant, and anything it can't read becomes "no data", which means "do nothing", never a guess.
 
-The soak so far covers one machine and one openclaw version (2026.6.11 on macOS). Other versions and platforms rest on the CI matrix and the compatibility pin, not on a live run.
+The soak so far covers one machine and one openclaw version, 2026.6.11 on macOS. Other versions and platforms rest on the CI matrix and the compatibility pin, not on a live run.
 
 ## How I tested it
 
@@ -89,7 +89,7 @@ The load-bearing mutation flips the threshold comparison from `>=` to `>` in `sr
 
 `npm run typecheck` compiles the plugin against the real `openclaw` package's plugin SDK types, pinned at 2026.6.11, so the hook signature, the service registration, and the gateway method contract are checked by the compiler, not by hope.
 
-The live soak ran against openclaw 2026.6.11 in an isolated dev profile with no provider keys anywhere in it. A stub usage file stood in for the provider numbers, and the receipt for each act is which lane the runtime actually tried: at 50 percent the turn went to the primary, at 85 percent spillway announced the spill and the turn genuinely attempted the backup lane, at 65 percent it returned to the primary. The soak also caught a bug the unit suite couldn't see, where the first turn after a runtime boot resolved its model before the first usage poll landed and an over-threshold lane was silently missed. The hook now fetches usage itself whenever it has no fresh row for the watched lane, and that fix shipped before this release.
+The live soak ran against openclaw 2026.6.11, with a stub usage file standing in for the provider numbers. The receipt is which lane the runtime actually tried rather than what the decision function returned. It went primary at 50 percent, backup at 85 with the spill announced in the log, primary again at 65. It also caught something 22 green tests couldn't, a boot race where the first turn after a restart resolved its model before any usage had been polled. That story is in the [ADR](docs/ADR.md).
 
 ## License
 

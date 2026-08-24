@@ -30,7 +30,7 @@ Classification is best effort and the README says so: turns carrying a job id co
 
 The unit suite passed on every path and the soak still caught this one. A gateway that has just booted has no usage data yet, the poller is a few seconds from its first read, and the very first turn resolves its model against an empty snapshot. An over-threshold lane got missed silently, exactly once per restart, which is the sort of gap that would have taken months to notice in the wild and looked like nothing when it happened.
 
-It was only visible because the soak ran against a real runtime and watched which lane each turn actually attempted, rather than asserting on what the decision function returned. The hook now fetches usage itself when it has no fresh row for a watched lane, with a single-flight poller so a burst of turns produces one read. The fix shipped before the first release, and the story stays in the README's testing section because a green suite that missed this is the honest context for the rest of the numbers.
+It was only visible because the soak ran against a real runtime and watched which lane each turn actually attempted, rather than asserting on what the decision function returned. The hook now fetches usage itself when it has no fresh row for a watched lane, with a single-flight poller so a burst of turns produces one read. The fix shipped before the first release. The README's testing section carries a one-line version and points here, because a green suite that missed this is the honest context for the rest of the numbers.
 
 ## The one lane this plugin never checks is the one it routes you onto
 
