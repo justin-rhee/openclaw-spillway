@@ -3,6 +3,12 @@
 All notable changes to openclaw-spillway. Versions follow semver; the git tag
 for each release matches the version in package.json.
 
+## 0.2.1
+
+- openclaw.plugin.json carried version 0.1.0 while package.json and the release tag
+  said 0.2.0, so the gateway and any registry reading the manifest saw the wrong
+  version. Both now read 0.2.1. No behaviour change.
+
 ## 0.2.0
 
 - a rule whose `spillProvider` does not resolve against the gateway's configured
