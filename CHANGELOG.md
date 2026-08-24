@@ -3,6 +3,16 @@
 All notable changes to openclaw-spillway. Versions follow semver; the git tag
 for each release matches the version in package.json.
 
+## 0.2.3
+
+- CI ran the dist drift guard before `npm ci`, so `tsc` was not installed and every push
+  failed at exit 127. The guard now runs after the install, and a clean-room run proves
+  the committed dist reproduces from a fresh install.
+- the README claimed 22 offline tests when the suite has 31. The count went stale when the
+  v0.2 lane validation landed and nothing checked it.
+- the limits and testing sections were trimmed, and the boot-race story moved to the ADR
+  that already told it in full.
+
 ## 0.2.2
 
 - ships compiled output in dist/. ClawHub refuses a TypeScript entry with no compiled

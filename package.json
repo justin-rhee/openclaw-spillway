@@ -1,6 +1,6 @@
 {
   "name": "openclaw-spillway",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Proactive quota-aware failover for OpenClaw: spill work to a backup lane before a usage window runs out.",
   "type": "module",
   "license": "MIT",

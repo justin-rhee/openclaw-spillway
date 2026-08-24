@@ -67,29 +67,29 @@ Spillway refuses to route on Anthropic usage windows by default. Those windows o
 
 ## What it won't do
 
-It doesn't give you more quota. It spends the quota you have on the right things at the right time, and the backup lane is usually a metered lane you pay per token.
+It doesn't give you more quota. It moves work onto a backup lane you usually pay for per token.
 
-The numbers it reads stay out of sight, going to the log and to `spillway.status` rather than to your screen. If you want the windows visible while you work, [headroom](https://github.com/justin-rhee/headroom) puts Claude usage and OpenRouter spend in the macOS menu bar.
+The numbers it reads stay out of sight, going to the log and to `spillway.status` rather than to your screen. If you want them visible while you work, [headroom](https://github.com/justin-rhee/headroom) puts Claude usage and OpenRouter spend in the macOS menu bar.
 
-It only half protects you from a backup lane that isn't there. At startup it checks that each rule's spill provider resolves to something the gateway actually has configured, so a typo or an unconfigured lane disables that rule on its own, says why in the log, and appears under `disabledRules` in `spillway.status`. Every other rule keeps working. What it cannot catch is a lane that was fine at boot and died later, a revoked key or an exhausted backup quota, and there the first spilled turn still lands on a dead lane. The circuit breaker that would close that gap, dropping a rule once its lane starts returning auth errors, is the half I haven't built. See [docs/ADR.md](docs/ADR.md).
+A backup lane that dies after boot still takes the first spilled turn. At startup each rule's spill provider has to resolve to something the gateway has configured, so a typo disables that rule alone and says why in the log. A key revoked at hour forty gets none of that, and neither does an exhausted backup quota. The circuit breaker that would close it is the half I haven't built.
 
-Session model pins are invisible to it, so pinning a model with `/model` for one session doesn't stop a spill override applying to that turn. I disable the plugin when it fights a pin I care about.
+Session model pins are invisible to it, so a `/model` pin doesn't stop a spill override on that turn. I disable the plugin when it fights a pin I care about.
 
 Background detection is best effort, since cron-driven turns carry a job id and classify as background while everything else counts as interactive.
 
-Usage payload shapes vary by provider and by openclaw version. The normalizer is deliberately tolerant, and anything it can't read becomes "no data", which means "do nothing", never a guess.
+Usage payload shapes vary by provider and by version. Anything the normalizer can't read becomes no data, which means do nothing, never a guess.
 
-The soak so far covers one machine and one openclaw version, 2026.6.11 on macOS. Other versions and platforms rest on the CI matrix and the compatibility pin, not on a live run.
+The soak covers one machine on macOS. Other platforms and openclaw versions rest on the CI matrix and the compatibility pin, not on a live run.
 
 ## How I tested it
 
-22 offline tests, run them with `npm test`. They cover the exact boundary (spill at 80.0, not at 79.9), hysteresis hold and release, background floors, the Anthropic default staying off at 99 percent usage, and every fail-safe path: missing data, stale data, an errored provider row, an empty window list.
+31 offline tests, run with `npm test`. They cover the exact boundary (spill at 80.0, not at 79.9), hysteresis hold and release, background floors, the Anthropic default staying off at 99 percent usage, and every fail-safe path: missing data, stale data, an errored provider row, an empty window list.
 
-The load-bearing mutation flips the threshold comparison from `>=` to `>` in `src/engine.ts`, and exactly one test goes red, the one named for the headline promise. I ran that mutation and its revert as part of this release.
+The load-bearing mutation flips the threshold comparison from `>=` to `>` in `src/engine.ts`, and exactly one test goes red, the one named for the headline promise. I ran it and its revert for this release.
 
-`npm run typecheck` compiles the plugin against the real `openclaw` package's plugin SDK types, pinned at 2026.6.11, so the hook signature, the service registration, and the gateway method contract are checked by the compiler, not by hope.
+`npm run typecheck` compiles against the real `openclaw` plugin SDK types, pinned at 2026.6.11, so the compiler checks the hook signature, the service registration, and the gateway method contract.
 
-The live soak ran against openclaw 2026.6.11, with a stub usage file standing in for the provider numbers. The receipt is which lane the runtime actually tried rather than what the decision function returned. It went primary at 50 percent, backup at 85 with the spill announced in the log, primary again at 65. It also caught something 22 green tests couldn't, a boot race where the first turn after a restart resolved its model before any usage had been polled. That story is in the [ADR](docs/ADR.md).
+The live soak ran against a real gateway, with a stub usage file standing in for the provider numbers. The receipt is which lane the runtime actually tried rather than what the decision function returned. It went primary at 50 percent, backup at 85, primary again at 65. It also caught what the offline suite couldn't, a boot race where the first turn after a restart resolved its model before any usage had been polled. The [ADR](docs/ADR.md) has that one.
 
 ## License
 
