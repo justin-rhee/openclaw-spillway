@@ -2,7 +2,7 @@
   "id": "spillway",
   "name": "Spillway",
   "description": "Proactive quota-aware failover: spill work to a backup lane before a usage window runs out.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "activation": {
     "onStartup": true
   },
@@ -58,7 +58,11 @@
         "items": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["watchProvider", "spillProvider", "spillModel"],
+          "required": [
+            "watchProvider",
+            "spillProvider",
+            "spillModel"
+          ],
           "properties": {
             "watchProvider": {
               "type": "string",
