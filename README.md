@@ -80,7 +80,7 @@ MIT. See [LICENSE](LICENSE). No warranty. Security notes and how to report a pro
 <!-- related:start -->
 ## Related
 
-- [headroom](https://github.com/justin-rhee/headroom): shows Claude usage and OpenRouter spend in the macOS menu bar
+- [headroom](https://github.com/justin-rhee/headroom): shows Claude usage and API spend in the macOS menu bar
 
 Part of a small set of tools I pulled out of my own agent harness. I use them myself and read every issue. More on my [GitHub profile](https://github.com/justin-rhee).
 <!-- related:end -->
